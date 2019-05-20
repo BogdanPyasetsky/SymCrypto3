@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.IO;
 
 
 namespace SymCrypto3
@@ -68,18 +69,23 @@ namespace SymCrypto3
             }
         }
 
-        public static string ReWord(int x)
+        public static string ReWord(int[] x)
         {
             char a1, a2;
-            int temp1 = x, temp2 = x;
             string res = "";
-            while (temp1 > 30)
-                temp1 -= 31;
-            a2 = ReConvert(temp1);
-            temp2 -= temp1;
-            a1 = ReConvert(temp2 / 31);
-            res += a1;
-            res += a2;
+            int temp1, temp2;
+            for (int i = 0; i < x.Length; i++)
+            {
+                temp1 = x[i]; temp2 = x[i];
+                while (temp1 > 30)
+                    temp1 -= 31;
+                a2 = ReConvert(temp1);
+                temp2 -= temp1;
+                a1 = ReConvert(temp2 / 31);
+                res += a1;
+                res += a2;
+            }
+            //Console.WriteLine(res);
             return  res;
         }
 
@@ -153,8 +159,7 @@ namespace SymCrypto3
                 }
                 else
                 {
-                    int[] res = new int[1];
-                    res[0] = -999;
+                    int[] res = new int[] {-999};
                     return res;
                 }
                 
@@ -205,24 +210,121 @@ namespace SymCrypto3
                 shortres.idx[i] = res.idx[i];
             }
 
+            //return shortres.idx;
             return shortres;
         }
 
 
 
-        public static Word Decrypt(Word X, int a, int b, int n)
+        private static bool Filter(int[] d_word)
         {
-            int[] x_part;
-            Word res = new Word(X.word.Length);
-            for (int i = 0; i < X.word.Length; i++)
+            int[] corr = new int[] { 26, 27, 40, 51, 53, 60, 91, 102, 118, 119, 120, 122, 133, 149, 181, 182, 195, 206, 207, 208, 210, 211, 212, 216 };
+            for (int w_idx = 0; w_idx < d_word.Length; w_idx++)
             {
-                x_part = LinComp(X.word[i] - b, a, n);
+                for (int c_idx = 0; c_idx < corr.Length; c_idx++)
+                {
+                    if (d_word[w_idx] == corr[c_idx])
+                    {
+                        
+                        return false;
+                        
+                    }
+                    
+                }
 
+                
             }
+            return true;
         }
 
 
 
-        public static void
+        public static int[] Decrypt(Word Y, int a, int b, int n)
+        {
+            int[] x_part;
+            int[] res = new int[Y.word.Length];
+            for (int i = 0; i < Y.word.Length; i++)
+            {
+                x_part = LinComp(Y.word[i] - b, a, n);
+                res[i] = x_part[0];
+            }
+            return res;
+        }
+
+
+
+        public static void Key_Search(int[] Y, Word W)
+        {
+            File.Delete("DecryptedText.txt");
+            bool filt;
+            int[] X = new int[] { 545, 417, 572, 403, 168 };
+            int X1, X2, Y1, Y2;
+            int[] a;
+            int[] d_word;
+            int b;
+            string res;
+            for (int t_Y1 = 0; t_Y1 < 5; t_Y1 ++)
+            {
+                Y1 = Y[t_Y1];
+
+                for (int t_Y2 = 0; t_Y2 < 5; t_Y2++)
+                {
+                    if (t_Y1 == t_Y2)
+                        if (t_Y1 != 4)
+                            Y2 = Y[t_Y2 + 1];
+                        else
+                            break;
+                    else
+                        Y2 = Y[t_Y2];
+
+                    for (int t_X1 = 0; t_X1 < 5; t_X1++)
+                    {
+                        X1 = X[t_X1];
+
+                        for (int t_X2 = 0; t_X2 < 5; t_X2++)
+                        {
+
+                            if (t_X1 == t_X2)
+                                if (t_X1 != 4)
+                                    X2 = X[t_X2 + 1];
+                                else
+                                    break;
+                            else
+                                X2 = X[t_X2];
+
+                            //Console.WriteLine(Y1 + "  " + Y2 + "  " + X1 + "  " + X2);
+
+
+                            
+                            a = LinComp(Mod(Y1 - Y2), Mod(X1 - X2), m2);
+                            for (int i = 0; i < a.Length; i++)
+                            {
+                                b = Mod(Y1 - a[i] * X1);
+                                if (a[i] != -999)
+                                {
+                                    d_word = Decrypt(W, a[i], b, m2);
+                                    filt = Filter(d_word);
+                                    if (filt == true)
+                                    {
+                                        res = ReWord(d_word);
+
+                                        File.AppendAllText("DecryptedText.txt", res);
+                                        File.AppendAllText("DecryptedText.txt", "           ");
+                                        Console.WriteLine("a: " + a[i] + "    b: " + b);
+                                    }
+
+
+                                }
+                                
+                            }
+                            //Console.WriteLine("---------------------------------------------------");
+
+                        }
+                    }
+                }
+            }
+
+
+        }
     }
 }
